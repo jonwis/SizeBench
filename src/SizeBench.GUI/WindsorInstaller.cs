@@ -52,6 +52,10 @@ public class WindsorInstaller : IWindsorInstaller
                                     .Instance(new SessionFactory())
                                     .LifestyleSingleton());
 
+        container.Register(Component.For<Settings.IAppSettings>()
+                                    .ImplementedBy<Settings.AppSettings>()
+                                    .LifestyleSingleton());
+
         container.Register(Component.For<IRecentSessionStore>()
                                     .ImplementedBy<RecentSessionStore>()
                                     .LifestyleSingleton());
