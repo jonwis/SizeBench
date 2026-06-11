@@ -1,5 +1,6 @@
 ﻿using System.Windows;
-using DiffPlex.Wpf.Controls;
+using System.Windows.Controls;
+using System.Windows.Documents;
 
 namespace SizeBench.GUI.Converters.Tests;
 #nullable disable // WPF's IValueConverter is not correctly nullable-annotated, so we disable nullable for the source and tests of the value converters.
@@ -55,7 +56,7 @@ public sealed class TwoStringsToDiffViewerUIConverterTests
     [TestMethod]
     public void ThirdArgumentControlsFontSize()
     {
-        var diffViewer = (DiffViewer)TwoStringsToDiffViewerUIConverter.Instance.Convert(new object[] { "disasm 1", "disasm 2", 120 }, typeof(object), null /* ConverterParameter */, null /* CultureInfo */);
-        Assert.AreEqual(19.2, diffViewer.FontSize, 0.001);
+        var viewer = (FlowDocumentScrollViewer)TwoStringsToDiffViewerUIConverter.Instance.Convert(new object[] { "disasm 1", "disasm 2", 120 }, typeof(object), null /* ConverterParameter */, null /* CultureInfo */);
+        Assert.AreEqual(19.2, viewer.Document.FontSize, 0.001);
     }
 }
