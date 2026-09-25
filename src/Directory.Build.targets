@@ -58,8 +58,10 @@
 
   <!-- This is all the stuff necessary to use DbgX at runtime, it's needed in multiple projects, so it's centralized here -->
   <ItemGroup Condition="'$(IncludeDbgXAssets)'=='true' and '$(MicrosoftDebuggingDataModelDbgModelApiXtnPath)' != ''">
-    <Content Include="..\ExternalDependencies\DIA\msdia140.dll">
+    <Content Include="$(MicrosoftDebuggingPlatformDbgEngContent)amd64\msdia140.dll" Condition="Exists('$(MicrosoftDebuggingPlatformDbgEngContent)amd64\msdia140.dll')">
+      <Link>msdia140.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>False</Visible>
     </Content>
     <None Include="$(MicrosoftDebuggingDataModelDbgModelApiXtnPath)\**\*" CopyToOutputDirectory="PreserveNewest" Visible="False" Link="%(RecursiveDir)%(FileName)%(Extension)"/>
   </ItemGroup>
