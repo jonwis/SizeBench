@@ -11,6 +11,7 @@
     <PackageReference Include="Microsoft.Debugging.Platform.DbgEng" />
     <PackageReference Include="Microsoft.Debugging.Platform.DbgX" />
     <PackageReference Include="System.ComponentModel.Composition" />
+    <PackageReference Include="System.Security.Cryptography.Xml" />
   </ItemGroup>
 
   <ItemGroup>
