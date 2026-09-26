@@ -58,7 +58,10 @@
 
   <!-- This is all the stuff necessary to use DbgX at runtime, it's needed in multiple projects, so it's centralized here -->
   <ItemGroup Condition="'$(IncludeDbgXAssets)'=='true' and '$(MicrosoftDebuggingDataModelDbgModelApiXtnPath)' != ''">
-    <Content Include="$(MicrosoftDebuggingPlatformDbgEngContent)amd64\msdia140.dll" Condition="Exists('$(MicrosoftDebuggingPlatformDbgEngContent)amd64\msdia140.dll')">
+    <!-- msdia140.dll is vendored in ExternalDependencies\DIA rather than taken from the Microsoft.Debugging.Platform.DbgEng
+         NuGet package: that package's copy predates DIA's support for the newer, compressed "MSFZ"/PDZ PDB container
+         format and hangs indefinitely when asked to open one. See ExternalDependencies\DIA\readme.txt. -->
+    <Content Include="$(MSBuildThisFileDirectory)ExternalDependencies\DIA\msdia140.dll">
       <Link>msdia140.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>False</Visible>

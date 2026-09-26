@@ -54,17 +54,17 @@ public class SessionTests
     }
 
     [TestMethod]
-    public async Task OpeningAnMsfzFormatPdbProvidesHelpfulErrorMessageInsteadOfHanging()
+    public async Task CanOpenAnMsfzFormatPdb()
     {
         // PDBs can be stored in a newer, compressed "MSFZ" container format (rather than the classic MSF format).
-        // The version of DIA (msdia140.dll) that SizeBench ships with can hang indefinitely when asked to open an
-        // MSFZ-format PDB, instead of failing quickly - so SizeBench detects this up-front and fails fast with a
-        // helpful message rather than appearing to freeze.
+        // SizeBench's bundled DIA (msdia140.dll, from the DIA SDK rather than the older copy that used to ship via
+        // the Microsoft.Debugging.Platform.DbgEng NuGet package) understands this format, so opening one should
+        // work exactly like opening the classic, uncompressed version of the same PDB.
         using var logger = new NoOpLogger();
+        await using var session = await Session.Create(this.CppDllBinaryPath, this.CppDllMsfzPDBPath, logger);
+        Assert.AreEqual<uint>(8, session.BytesPerWord);
 
-        var ex = await Assert.ThrowsExactlyAsync<PDBNotSuitableForAnalysisException>(async () =>
-            await Session.Create(this.CppDllBinaryPath, this.CppDllMsfzPDBPath, logger));
-
-        Assert.Contains("MSFZ", ex.Message, StringComparison.Ordinal);
+        var compilands = await session.EnumerateCompilands(this.TestContext!.CancellationToken);
+        Assert.HasCount(30, compilands);
     }
 }
