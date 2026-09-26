@@ -128,16 +128,68 @@ internal sealed class DIAAdapter : IDIAAdapter, IDisposable
 
     public static readonly Guid Dia140Clsid = new Guid("{E6756135-1E65-4D17-8576-610761398C3C}");
 
+    // The 32-byte signature that begins any PDB stored in the newer, compressed "MSFZ" container format:
+    // the ASCII text "Microsoft MSFZ Container" followed by "\r\n\x1a\x41\x4c\x44\x00\x00".
+    private static readonly byte[] MsfzContainerSignature =
+    [
+        0x4D, 0x69, 0x63, 0x72, 0x6F, 0x73, 0x6F, 0x66, 0x74, 0x20, 0x4D, 0x53, 0x46, 0x5A, 0x20, 0x43,
+        0x6F, 0x6E, 0x74, 0x61, 0x69, 0x6E, 0x65, 0x72, 0x0D, 0x0A, 0x1A, 0x41, 0x4C, 0x44, 0x00, 0x00
+    ];
+
     #region Construction, opening, all the startup-y things
 
     internal DIAAdapter(Session session, string pdbPath)
-        : this(session, source => source.loadDataFromPdbEx(pdbPath, fPdbPrefetching: 1), pdbPath)
+        : this(session, source => source.loadDataFromPdbEx(pdbPath, fPdbPrefetching: 1), ThrowIfMsfzFormatPdb(pdbPath))
     {
     }
 
     internal DIAAdapter(Session session, string binaryPath, string symbolSearchPath)
         : this(session, source => source.loadDataForExe(binaryPath, symbolSearchPath, pCallback: null), binaryPath)
     {
+    }
+
+    /// <summary>
+    /// Checks whether <paramref name="pdbPath"/> is a PDB stored in the newer, compressed "MSFZ" container format
+    /// and, if so, throws immediately instead of handing it to DIA.  The version of DIA (msdia140.dll) that
+    /// SizeBench currently ships can hang indefinitely (spinning a CPU core, never returning or throwing) when
+    /// asked to open certain MSFZ-format PDBs, so SizeBench proactively refuses rather than appearing to freeze.
+    /// </summary>
+    private static string ThrowIfMsfzFormatPdb(string pdbPath)
+    {
+        if (IsMsfzFormatPdb(pdbPath))
+        {
+            throw new PDBNotSuitableForAnalysisException(
+                $"Unable to open PDB from '{pdbPath}'" + Environment.NewLine +
+                "This PDB is stored in the newer, compressed 'MSFZ' container format.  SizeBench does not yet support " +
+                "this format - the version of DIA (msdia140.dll) that SizeBench ships with can hang indefinitely when " +
+                "asked to open an MSFZ-format PDB, rather than failing quickly, so SizeBench detects this up-front and " +
+                "refuses to try.  Please convert the PDB back to the classic (uncompressed) MSF format before analyzing " +
+                "it with SizeBench.");
+        }
+
+        return pdbPath;
+    }
+
+    private static bool IsMsfzFormatPdb(string pdbPath)
+    {
+        try
+        {
+            using var stream = File.OpenRead(pdbPath);
+            if (stream.Length < MsfzContainerSignature.Length)
+            {
+                return false;
+            }
+
+            Span<byte> header = stackalloc byte[MsfzContainerSignature.Length];
+            var bytesRead = stream.ReadAtLeast(header, header.Length, throwOnEndOfStream: false);
+            return bytesRead == header.Length && header.SequenceEqual(MsfzContainerSignature);
+        }
+        catch (IOException)
+        {
+            // If we can't even read the file to sniff its format, let the normal DIA-based error path report the
+            // failure, since it'll have a more specific/actionable message than we could produce here.
+            return false;
+        }
     }
 
     private DIAAdapter(Session session, Action<IDiaDataSourceEx2> loadFromSource, string sourceDescriptionForErrors)

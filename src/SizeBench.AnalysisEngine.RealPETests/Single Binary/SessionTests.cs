@@ -5,6 +5,7 @@ namespace SizeBench.AnalysisEngine.Tests;
 
 [DeploymentItem(@"Test PEs\SizeBenchV2.AnalysisEngine.Tests.CppDll.dll")]
 [DeploymentItem(@"Test PEs\SizeBenchV2.AnalysisEngine.Tests.CppDll.pdb")]
+[DeploymentItem(@"Test PEs\SizeBenchV2.AnalysisEngine.Tests.CppDll.msfz.pdb")]
 [DeploymentItem(@"Test PEs\SizeBenchV2.AnalysisEngine.Tests.Cpp32BitDll.dll")]
 [DeploymentItem(@"Test PEs\SizeBenchV2.AnalysisEngine.Tests.Cpp32BitDll.pdb")]
 [TestClass]
@@ -15,6 +16,8 @@ public class SessionTests
     private string CppDllBinaryPath => Path.Combine(this.TestContext!.DeploymentDirectory!, "SizeBenchV2.AnalysisEngine.Tests.CppDll.dll");
 
     private string CppDllPDBPath => Path.Combine(this.TestContext!.DeploymentDirectory!, "SizeBenchV2.AnalysisEngine.Tests.CppDll.pdb");
+
+    private string CppDllMsfzPDBPath => Path.Combine(this.TestContext!.DeploymentDirectory!, "SizeBenchV2.AnalysisEngine.Tests.CppDll.msfz.pdb");
 
     private string Cpp32BitDllBinaryPath => Path.Combine(this.TestContext!.DeploymentDirectory!, "SizeBenchV2.AnalysisEngine.Tests.Cpp32BitDll.dll");
 
@@ -48,5 +51,20 @@ public class SessionTests
             await Session.Create(this.Cpp32BitDllPDBPath, this.Cpp32BitDllBinaryPath, logger));
 
         Assert.Contains("E_PDB_FORMAT", ex.Message, StringComparison.Ordinal);
+    }
+
+    [TestMethod]
+    public async Task OpeningAnMsfzFormatPdbProvidesHelpfulErrorMessageInsteadOfHanging()
+    {
+        // PDBs can be stored in a newer, compressed "MSFZ" container format (rather than the classic MSF format).
+        // The version of DIA (msdia140.dll) that SizeBench ships with can hang indefinitely when asked to open an
+        // MSFZ-format PDB, instead of failing quickly - so SizeBench detects this up-front and fails fast with a
+        // helpful message rather than appearing to freeze.
+        using var logger = new NoOpLogger();
+
+        var ex = await Assert.ThrowsExactlyAsync<PDBNotSuitableForAnalysisException>(async () =>
+            await Session.Create(this.CppDllBinaryPath, this.CppDllMsfzPDBPath, logger));
+
+        Assert.Contains("MSFZ", ex.Message, StringComparison.Ordinal);
     }
 }
