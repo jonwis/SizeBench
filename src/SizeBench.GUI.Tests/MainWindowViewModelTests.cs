@@ -400,6 +400,49 @@ public sealed class MainWindowViewModelTests : IDisposable
     }
 
     [TestMethod]
+    public async Task OpenRecentDiffSessionUsesDefaultSessionOptions()
+    {
+        var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            var beforeBinaryPath = Path.Combine(tempDirectory, "before.dll");
+            var beforePdbPath = Path.Combine(tempDirectory, "before.pdb");
+            var afterBinaryPath = Path.Combine(tempDirectory, "after.dll");
+            var afterPdbPath = Path.Combine(tempDirectory, "after.pdb");
+            foreach (var path in new[] { beforeBinaryPath, beforePdbPath, afterBinaryPath, afterPdbPath })
+            {
+                File.WriteAllText(path, String.Empty);
+            }
+
+            var recentSession = RecentSession.CreateDiff(beforeBinaryPath, beforePdbPath, afterBinaryPath, afterPdbPath);
+            this.MockSessionFactory.Setup(sf => sf.CreateDiffSession(beforeBinaryPath, beforePdbPath,
+                                                                     afterBinaryPath, afterPdbPath,
+                                                                     new SessionOptions(), It.IsAny<ILogger>()))
+                                   .ReturnsAsync(new Mock<IDiffSession>().Object);
+
+            using var container = new WindsorContainer();
+            using var appLogger = new TestNoOpApplicationLogger();
+            var vm = new MainWindowViewModel(container, appLogger, this.MockSessionFactory.Object,
+                                             this.MockRecentSessionStore.Object, this.MockRecentSessionLauncher.Object);
+
+            await vm.OpenRecentSession(recentSession);
+
+            this.MockSessionFactory.Verify(sf => sf.CreateDiffSession(beforeBinaryPath, beforePdbPath,
+                                                                      afterBinaryPath, afterPdbPath,
+                                                                      new SessionOptions(), It.IsAny<ILogger>()),
+                                           Times.Once());
+            Assert.AreEqual(1, vm.OpenTabs.Count);
+            Assert.IsInstanceOfType(vm.OpenTabs[0], typeof(BinaryDiffTab));
+        }
+        finally
+        {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
+    }
+
+    [TestMethod]
     public async Task DeeplinkWithBothPathsAndSymbolSourcesSupportedUsesProvidedSessionOptions()
     {
         var expectedBinaryPath = @"c:\dev\blah.dll";

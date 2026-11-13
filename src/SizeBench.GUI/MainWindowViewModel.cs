@@ -544,7 +544,8 @@ internal sealed class MainWindowViewModel : INotifyPropertyChanged, IDialogServi
                                                                                   recentSession.BeforeBinaryPath!,
                                                                                   recentSession.BeforePdbPath!,
                                                                                   recentSession.AfterBinaryPath!,
-                                                                                  recentSession.AfterPdbPath!);
+                                                                                  recentSession.AfterPdbPath!,
+                                                                                  recentSession.ToSessionOptions());
 
                 if (diffSession != null)
                 {
