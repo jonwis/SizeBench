@@ -417,10 +417,13 @@ public sealed class MainWindowViewModelTests : IDisposable
             }
 
             var recentSession = RecentSession.CreateDiff(beforeBinaryPath, beforePdbPath, afterBinaryPath, afterPdbPath);
+            var mockDiffSession = new Mock<IDiffSession>();
+            mockDiffSession.SetupGet(ds => ds.BeforeSession).Returns(new Mock<ISession>().Object);
+            mockDiffSession.SetupGet(ds => ds.AfterSession).Returns(new Mock<ISession>().Object);
             this.MockSessionFactory.Setup(sf => sf.CreateDiffSession(beforeBinaryPath, beforePdbPath,
                                                                      afterBinaryPath, afterPdbPath,
                                                                      new SessionOptions(), It.IsAny<ILogger>()))
-                                   .ReturnsAsync(new Mock<IDiffSession>().Object);
+                                   .ReturnsAsync(mockDiffSession.Object);
 
             using var container = new WindsorContainer();
             using var appLogger = new TestNoOpApplicationLogger();
